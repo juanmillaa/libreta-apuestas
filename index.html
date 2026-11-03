@@ -322,7 +322,7 @@ label.f input.big{font-family:var(--f-mono);font-size:20px;font-weight:600}
   </section>
 
   <footer class="foot">
-    <span>Beneficio = importe × (cuota − 1) si ganas · −importe si pierdes. Yield = beneficio ÷ apostado.</span>
+    <span>Beneficio = importe × (cuota − 1) si ganas · −importe si pierdes. Yield = beneficio ÷ apostado. ROI = beneficio ÷ banca al empezar el periodo.</span>
     <span id="footStore"></span>
   </footer>
 </div>
@@ -570,7 +570,13 @@ function renderKpis(S,P,rg,cur,c,list){
   h.push(kpi("Acierto",S.acierto==null?"—":pctF.format(S.acierto),S.acierto==null?"":n2.format(S.wins).replace(",00","")+" de "+n2.format(S.wins+S.losses).replace(",00","")+" resueltas"));
   h.push(kpi("Apostado",money(S.apostado),S.settled?S.settled+" apuestas · media "+money(S.stakeMedio):"sin apuestas cerradas"));
   h.push(kpi("Cuota media",S.cuotaMedia?n2.format(S.cuotaMedia):"—",S.cuotaMedia?"necesitas acertar ≥ "+pctF.format(S.implicita||1/S.cuotaMedia):""));
-  h.push(kpi("En juego",money(S.enJuego),S.pend?S.pend+" pendiente"+(S.pend>1?"s":"")+" · cobro máx. "+money(S.potencial):"nada pendiente",S.pend?"":"mut"));
+  // ROI: beneficio del periodo sobre la banca que tenías al empezarlo (lo "en juego" ya sale bajo la banca)
+  const bankAt=f=>c.bancaInicial+stats(list.filter(b=>b.fecha<f)).beneficio;
+  const b0=rg.from?bankAt(iso(rg.from)):c.bancaInicial;
+  const roi=b0>0&&S.settled?S.beneficio/b0:null;
+  let roiSub=b0>0?"sobre tu banca al empezar el periodo ("+money(b0)+")":"pon tu banca inicial en Ajustes";
+  if(P&&rg.prev&&roi!=null){const pb0=bankAt(iso(rg.prev.from));if(pb0>0&&P.settled)roiSub=deltaTxt(roi*100,P.beneficio/pb0*100,v=>(v>0?"+":"")+n2.format(v)+" pp",rg);}
+  h.push(kpi("ROI",spct(roi),roiSub,roi==null?"":cls(roi)));
   const sTxt=st.curT>0?st.cur+" ganadas":st.curT<0?st.cur+" perdidas":"—";
   h.push(kpi("Racha actual",sTxt,"récord: "+st.bestW+" ganadas · "+st.bestL+" perdidas",st.curT>0?"pos":st.curT<0?"neg":""));
   h.push(kpi("Peor caída",dd?"−"+money(dd):"0 €",c.bancaInicial&&dd?pctF.format(dd/c.bancaInicial)+" de la banca inicial (histórico)":"desde el máximo de banca",dd?"neg":""));
