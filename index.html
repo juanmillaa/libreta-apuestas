@@ -203,6 +203,41 @@ label.f input.big{font-family:var(--f-mono);font-size:20px;font-weight:600}
 .form-err{color:var(--loss);font-size:13.5px;margin:0}
 .sheet-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 
+/* Comparador */
+.sheet.wide{max-width:780px}
+#cmpOut{display:flex;flex-direction:column;gap:10px}
+.cmp-search{display:flex;gap:8px}
+.cmp-search input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;font-size:16px;color:var(--ink)}
+.cmp-opts{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.recent{display:flex;gap:6px;flex-wrap:wrap}
+.recent button{border:1px dashed var(--line);background:transparent;border-radius:99px;padding:3px 10px;font-size:12.5px;color:var(--muted)}
+.cmp-status{font-size:14px;color:var(--muted);padding:6px 0}
+.cmp-status.err{color:var(--loss)}
+.cmp-ev{display:flex;flex-direction:column;gap:2px;border-bottom:1px dashed var(--line);padding-bottom:10px}
+.cmp-ev b{font-family:var(--f-display);font-stretch:90%;font-size:19px;font-weight:700;line-height:1.2}
+.cmp-ev small{color:var(--muted);font-size:12.5px}
+.cmp-note{font-size:13px;background:var(--pending-soft);border-radius:8px;padding:7px 10px}
+.cmp-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.cmp-tbl th{font-size:10.5px;letter-spacing:0;text-transform:none;padding:4px 2px;text-align:right;white-space:nowrap}
+.cmp-tbl th:first-child{text-align:left}
+.cmp-tbl td{padding:2px;border-bottom:1px solid var(--line)}
+.cmp-tbl tr.g td{padding:12px 2px 4px;font-weight:600;font-size:13px;border-bottom:1px solid var(--ink)}
+.cmp-tbl td.sel{padding-right:6px;line-height:1.25;word-break:break-word}
+.cmp-tbl tr.obj td.sel{color:var(--accent);font-weight:600}
+.cmp-tbl tr.obj td.sel::before{content:"▶ "}
+.cmp-tbl td.c{text-align:right;width:1%}
+.q{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px;border:0;background:transparent;border-radius:6px;padding:6px 4px;min-width:44px;text-align:right}
+.q.best{background:var(--profit-soft);color:var(--profit);font-weight:600}
+.q.none{color:var(--line);cursor:default}
+.cmp-best{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--profit-soft);border:1px solid color-mix(in srgb,var(--profit) 35%,transparent);border-radius:10px;padding:10px 12px;font-size:14px}
+.cmp-best b{font-family:var(--f-mono)}
+details.cmp-casas{font-size:12.5px;color:var(--muted)}
+details.cmp-casas summary{cursor:pointer}
+details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
+.cmp-setup ol{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.55}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-1px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
 .toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:9px;font-size:14px;z-index:60;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
 .foot{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -223,6 +258,7 @@ label.f input.big{font-family:var(--f-mono);font-size:20px;font-weight:600}
     <div class="top-actions">
       <span id="sync" class="sync">Conectando…</span>
       <button class="btn" id="btnSettings" type="button">Ajustes</button>
+      <button class="btn" id="btnCmp" type="button">Comparar cuotas</button>
       <button class="btn primary" id="btnNew" type="button">+ Nueva apuesta</button>
     </div>
   </header>
@@ -327,6 +363,25 @@ label.f input.big{font-family:var(--f-mono);font-size:20px;font-weight:600}
   </footer>
 </div>
 
+<!-- Comparador -->
+<div class="overlay" id="cmpOverlay" hidden>
+  <div class="sheet wide" role="dialog" aria-labelledby="cmpTitle">
+    <div class="slip-top"><h3 id="cmpTitle">Comparar cuotas</h3><button type="button" class="btn small" id="cmpClose">Cerrar</button></div>
+    <form class="cmp-search" id="cmpForm">
+      <input id="cmpQ" type="search" enterkeyhint="search" autocomplete="off" placeholder="Maxey puntos · Sevilla gana · Struff aces" aria-label="Qué quieres comparar">
+      <button class="btn primary" type="submit" id="cmpGo">Buscar</button>
+    </form>
+    <div class="cmp-opts">
+      <div class="tabs" id="cmpDep">
+        <button type="button" data-d="">Auto</button><button type="button" data-d="futbol">Fútbol</button><button type="button" data-d="nba">NBA</button><button type="button" data-d="nfl">NFL</button><button type="button" data-d="tenis">Tenis</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="cmpTodas"> Todas las líneas</label>
+    </div>
+    <div class="recent" id="cmpRecent"></div>
+    <div id="cmpOut"></div>
+  </div>
+</div>
+
 <!-- Formulario apuesta -->
 <div class="overlay" id="betOverlay" hidden>
   <form class="sheet" id="betForm" novalidate>
@@ -373,6 +428,11 @@ label.f input.big{font-family:var(--f-mono);font-size:20px;font-weight:600}
       <label class="f full">Límite de pérdidas al mes (€, vacío = sin límite)<input id="sLimite" class="big" inputmode="decimal" placeholder="Ej. 50"></label>
     </div>
     <p class="small">La unidad sirve para saber cuánto apostar por jugada: con una banca de 200 € y 2 %, la unidad es 4 €. El límite mensual te avisa arriba cuando te acercas.</p>
+    <div class="payout" style="flex-direction:column;align-items:stretch">
+      <div><small>Comparador de cuotas</small><span style="font-size:14px">Dirección de tu portátil en Tailscale (la que da <code>tailscale serve</code>).</span></div>
+      <div style="display:flex;gap:6px"><input id="sCmpUrl" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://portatil.tu-red.ts.net" style="flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;font-size:14px;color:var(--ink)"><button type="button" class="btn small" id="btnCmpTest">Probar</button></div>
+      <span class="small" id="cmpTestTxt"></span>
+    </div>
     <div id="exportBox" class="payout">
       <div style="min-width:0;flex:1 1 220px"><small>Copia de seguridad</small><span style="font-size:14px">Guarda tus apuestas en Archivos por si cambias de móvil o borras la app.</span></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -877,12 +937,14 @@ let toastT=null;function toast(m){const t=$("#toast");t.textContent=m;t.hidden=f
 function openSettings(){
   $("#sBanca").value=String(config.bancaInicial).replace(".",",");$("#sUnidad").value=String(config.unidadPct??2).replace(".",",");
   $("#sLimite").value=config.limiteMensual?String(config.limiteMensual).replace(".",","):"";
+  $("#sCmpUrl").value=cmpUrl();$("#cmpTestTxt").textContent="";
   $("#importConfirm").hidden=true;$("#setOverlay").hidden=false;
 }
 async function submitSettings(ev){
   ev.preventDefault();const banca=num($("#sBanca").value),u=num($("#sUnidad").value),l=num($("#sLimite").value);
   if(!(banca>=0)){toast("La banca inicial tiene que ser un número.");return}
   config={...config,bancaInicial:banca,unidadPct:u>0?u:0,limiteMensual:l>0?l:0};
+  lsSet(CMP_URL,normUrl($("#sCmpUrl").value));
   try{await persistConfig();closeAll();toast("Ajustes guardados")}catch(e){toast("No se han podido guardar los ajustes.")}
 }
 async function saveFile(name,text,mime){
@@ -911,6 +973,100 @@ function readImport(file){
     }catch(e){toast("Ese archivo no es una copia de la libreta.")}};
   fr.readAsText(file);
 }
+/* ---------- comparador (habla con servidor.py en el portátil) ---------- */
+const CMP_URL=LS_KEY+"-cmp-url",CMP_HIST=LS_KEY+"-cmp-hist";
+const DEP_LIBRETA={futbol:"Fútbol",nba:"Baloncesto",nfl:"Fútbol americano",tenis:"Tenis"};
+const CORTO={"William Hill":"W. Hill","Winamax":"Winamax"};
+let cmpDep="",cmpBusy=null,cmpRes=null;
+const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+function cmpUrl(){return lsGet(CMP_URL,"")}
+function normUrl(u){u=(u||"").trim().replace(/\/+$/,"");if(u&&!/^https?:\/\//i.test(u))u="https://"+u;return u}
+const fq=v=>v==null?"—":v.toFixed(2).replace(".",",");
+function fHora(iso){if(!iso)return"";const d=new Date(iso);return d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})+" · "+d.toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}
+function cmpHist(){try{return JSON.parse(lsGet(CMP_HIST,"[]"))||[]}catch(e){return[]}}
+function renderRecent(){
+  const h=cmpHist();
+  $("#cmpRecent").innerHTML=h.map(q=>`<button type="button" data-q="${esc(q)}">${esc(q)}</button>`).join("");
+}
+function openCmp(){
+  $("#cmpOverlay").hidden=false;renderRecent();
+  document.querySelectorAll("#cmpDep button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.d===cmpDep)));
+  if(!cmpUrl())renderSetup();
+  setTimeout(()=>$("#cmpQ").focus(),30);
+}
+function closeCmp(){$("#cmpOverlay").hidden=true}
+function renderSetup(){
+  $("#cmpOut").innerHTML=`<div class="cmp-setup"><p class="cmp-status">Falta conectar la app con tu portátil:</p><ol>
+    <li>En el portátil, arranca el servidor del comparador y <code>tailscale serve</code>.</li>
+    <li>En el iPhone, abre la app Tailscale y actívala.</li>
+    <li>En <b>Ajustes</b> de esta app, pega la dirección <code>https://…ts.net</code> y pulsa Probar.</li></ol>
+    <p style="margin-top:10px"><button type="button" class="btn small primary" id="cmpToSettings">Ir a Ajustes</button></p></div>`;
+  $("#cmpToSettings").addEventListener("click",()=>{closeCmp();openSettings()});
+}
+async function cmpFetch(path,ms){
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),ms);
+  try{const r=await fetch(cmpUrl()+path,{signal:ctl.signal,cache:"no-store"});const j=await r.json();return j}
+  finally{clearTimeout(t)}
+}
+async function runCmp(q){
+  q=(q||"").trim();if(!q)return;
+  if(!cmpUrl()){renderSetup();return}
+  $("#cmpQ").value=q;
+  const h=cmpHist().filter(x=>x.toLowerCase()!==q.toLowerCase());h.unshift(q);lsSet(CMP_HIST,JSON.stringify(h.slice(0,8)));renderRecent();
+  const id={};cmpBusy=id;$("#cmpGo").disabled=true;
+  $("#cmpOut").innerHTML=`<p class="cmp-status"><span class="spin"></span>Buscando cuotas en las casas… La primera búsqueda de un jugador puede tardar medio minuto.</p>`;
+  const par=new URLSearchParams({q});if(cmpDep)par.set("dep",cmpDep);if($("#cmpTodas").checked)par.set("todas","1");
+  try{
+    const res=await cmpFetch("/api/comparar?"+par,150000);
+    if(cmpBusy!==id)return;cmpRes=res;renderCmp(res);
+  }catch(e){
+    if(cmpBusy!==id)return;
+    $("#cmpOut").innerHTML=`<p class="cmp-status err">${e&&e.name==="AbortError"?"El portátil está tardando demasiado. Vuelve a intentarlo.":"No llego al portátil. Comprueba que está encendido con el servidor en marcha y que Tailscale está activado en el móvil."}</p>`;
+  }finally{if(cmpBusy===id){cmpBusy=null;$("#cmpGo").disabled=false}}
+}
+function renderCmp(r){
+  const casas=(r.casas||[]).map(c=>`<li><b>${esc(c.casa)}</b>: ${c.error?esc("— "+c.error):esc(c.partido)+(c.inicio?" · "+esc(fHora(c.inicio)):"")+(c.dudoso?" (¿es el mismo partido?)":"")}</li>`).join("");
+  const conCuotas=(r.casas||[]).filter(c=>!c.error).length;
+  const det=casas?`<details class="cmp-casas"><summary>${conCuotas} de ${(r.casas||[]).length} casas con cuotas</summary><ul>${casas}</ul></details>`:"";
+  const info=(r.info||[]).map(i=>`<p class="cmp-status">${esc(i)}</p>`).join("");
+  if(!r.ok){$("#cmpOut").innerHTML=info+`<p class="cmp-status">${esc(r.mensaje||"No hay resultados.")}</p>`+det;return}
+  const cols=r.columnas;
+  let rows="";
+  r.grupos.forEach((g,gi)=>{
+    rows+=`<tr class="g"><td colspan="${cols.length+1}">${esc(g.titulo)}</td></tr>`;
+    g.filas.forEach((f,fi)=>{
+      const n=f.cuotas.filter(Boolean).length;
+      rows+=`<tr${f.objetivo?' class="obj"':""}><td class="sel">${esc(f.sel)}</td>`+f.cuotas.map((v,ci)=>`<td class="c">${v?`<button type="button" class="q${v===f.mejor&&n>1?" best":""}" data-g="${gi}" data-f="${fi}" data-c="${ci}" aria-label="${esc(cols[ci])} ${fq(v)}">${fq(v)}</button>`:`<span class="q none">—</span>`}</td>`).join("")+`</tr>`;
+    });
+  });
+  const ev=r.evento?`<div class="cmp-ev"><b>${esc(r.evento.nombre.replace(" - "," – "))}</b><small>${esc(fHora(r.evento.inicio))}${r.segundos!=null?" · "+String(r.segundos).replace(".",",")+" s":""}</small></div>`:"";
+  const avisos=(r.avisos||[]).map(a=>`<p class="cmp-note">${esc(a)}</p>`).join("");
+  let best="";
+  if(r.mejor){const m=r.mejor;best=`<div class="cmp-best"><span>▶ Mejor para tu apuesta: <b>${esc(m.casa)} a ${fq(m.cuota)}</b>${m.extra?`<br><small class="mut">${esc(m.extra)}</small>`:""}</span><button type="button" class="btn small primary" id="cmpBestAdd">Apuntar</button></div>`}
+  const marg=(r.margenes||[]).length?`<p class="small">Margen de la casa en el 1X2: ${r.margenes.map(m=>esc(m.casa)+" "+pctF.format(m.margen)).join(" · ")}</p>`:"";
+  $("#cmpOut").innerHTML=ev+info+avisos+best+`<p class="small">Toca una cuota para apuntar la apuesta con esa casa.</p>
+    <div class="tbl-wrap"><table class="cmp-tbl"><thead><tr><th>Selección</th>${cols.map(c=>`<th>${esc(CORTO[c]||c)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`+marg+det+`<p class="small">${esc(r.nota||"")}</p>`;
+  const b=$("#cmpBestAdd");if(b)b.addEventListener("click",()=>{const m=r.mejor;prefillBet(r,m.grupo,m.sel,m.casa,m.cuota)});
+}
+function prefillBet(r,grupo,sel,casa,cuota){
+  openBet(null);
+  $("#iEvento").value=r.evento?r.evento.nombre.replace(" - "," – "):"";
+  $("#iMercado").value=(grupo&&grupo!==sel?grupo+" · ":"")+sel;
+  $("#iCuota").value=n2.format(cuota).replace(/\./g,"");
+  $("#iCasa").value=casa;
+  if(DEP_LIBRETA[r.deporte])$("#iDeporte").value=DEP_LIBRETA[r.deporte];
+  if(r.evento&&r.evento.inicio){const d=new Date(r.evento.inicio);if(!isNaN(d))$("#iFecha").value=iso(d)}
+  updatePayout();setTimeout(()=>$("#iImporte").focus(),40);
+}
+async function testCmp(){
+  const u=normUrl($("#sCmpUrl").value);$("#sCmpUrl").value=u;
+  if(!u){$("#cmpTestTxt").textContent="Pega primero la dirección.";return}
+  lsSet(CMP_URL,u);$("#cmpTestTxt").textContent="Probando…";
+  try{const j=await cmpFetch("/api/salud",8000);$("#cmpTestTxt").textContent=j&&j.ok?"Conectado. Casas: "+Object.values(j.casas).join(", ")+".":"Responde, pero no parece el comparador."}
+  catch(e){$("#cmpTestTxt").textContent="No responde. ¿Portátil encendido, servidor en marcha y Tailscale activo en el móvil?"}
+}
+
 /* ---------- eventos ---------- */
 buildStates();
 document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{period=b.dataset.p;histLimit=40;try{localStorage.setItem(LS_KEY+"-p",period)}catch(e){}renderAll()}));
@@ -918,9 +1074,20 @@ document.querySelectorAll("#bdTabs button").forEach(b=>b.addEventListener("click
 $("#btnNew").addEventListener("click",()=>openBet(null));
 $("#btnNew2").addEventListener("click",()=>openBet(null));
 $("#btnSettings").addEventListener("click",openSettings);
+$("#btnCmp").addEventListener("click",openCmp);
+$("#cmpClose").addEventListener("click",closeCmp);
+$("#cmpForm").addEventListener("submit",e=>{e.preventDefault();$("#cmpQ").blur();runCmp($("#cmpQ").value)});
+$("#cmpRecent").addEventListener("click",e=>{const b=e.target.closest("[data-q]");if(b)runCmp(b.dataset.q)});
+document.querySelectorAll("#cmpDep button").forEach(b=>b.addEventListener("click",()=>{cmpDep=b.dataset.d;document.querySelectorAll("#cmpDep button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)))}));
+$("#cmpOut").addEventListener("click",e=>{
+  const q=e.target.closest("button.q");if(!q||!cmpRes)return;
+  const g=cmpRes.grupos[+q.dataset.g],f=g.filas[+q.dataset.f],ci=+q.dataset.c;
+  prefillBet(cmpRes,g.titulo,f.sel,cmpRes.columnas[ci],f.cuotas[ci]);
+});
+$("#btnCmpTest").addEventListener("click",testCmp);
 document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",closeAll));
-document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)closeAll()}));
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAll()});
+document.querySelectorAll(".overlay").forEach(o=>o.addEventListener("click",e=>{if(e.target===o){if(o.id==="cmpOverlay")closeCmp();else closeAll()}}));
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;if(!$("#betOverlay").hidden||!$("#setOverlay").hidden)closeAll();else closeCmp()});
 $("#betForm").addEventListener("submit",submitBet);
 $("#betForm").addEventListener("input",updatePayout);
 $("#betForm").addEventListener("change",updatePayout);
