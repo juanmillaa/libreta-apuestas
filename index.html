@@ -235,6 +235,23 @@ label.f input.big{font-family:var(--f-mono);font-size:20px;font-weight:600}
 details.cmp-casas{font-size:12.5px;color:var(--muted)}
 details.cmp-casas summary{cursor:pointer}
 details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
+.cmp-tbl .sub{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:1px}
+.cmp-tbl .sub .pos,.prop .pos{color:var(--profit);font-weight:600}
+.cmp-mode{align-self:flex-start}
+.props-opts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.props-opts select{flex:1 1 140px;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 10px;font-size:14px;color:var(--ink)}
+.prop{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--surface);text-align:left;width:100%;font:inherit;color:inherit;cursor:pointer}
+.prop:hover{border-color:var(--muted)}
+.prop b{font-weight:600}
+.prop .p-ev{grid-column:1/-1;font-size:11.5px;color:var(--muted)}
+.prop .p-sel{font-size:13.5px}
+.prop .p-q{grid-row:2/4;grid-column:2;text-align:right;font-family:var(--f-mono);font-size:18px;font-weight:600;line-height:1.1}
+.prop .p-q small{display:block;font-family:var(--f-body);font-size:11.5px;font-weight:500;color:var(--muted)}
+.prop .p-tags{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}
+.tag{font-size:11.5px;border-radius:99px;padding:1px 8px;background:var(--surface-2);border:1px solid var(--line);white-space:nowrap}
+.tag.good{background:var(--profit-soft);color:var(--profit);border-color:transparent;font-weight:600}
+.tag.hist{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.props-list{display:flex;flex-direction:column;gap:8px}
 .cmp-setup ol{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.55}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-1px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -367,6 +384,11 @@ details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
 <div class="overlay" id="cmpOverlay" hidden>
   <div class="sheet wide" role="dialog" aria-labelledby="cmpTitle">
     <div class="slip-top"><h3 id="cmpTitle">Comparar cuotas</h3><button type="button" class="btn small" id="cmpClose">Cerrar</button></div>
+    <div class="seg cmp-mode" role="group" aria-label="Modo">
+      <button type="button" data-m="buscar" aria-pressed="true">Buscar</button>
+      <button type="button" data-m="props" aria-pressed="false">Props del día</button>
+    </div>
+    <div id="cmpBuscar" style="display:flex;flex-direction:column;gap:14px">
     <form class="cmp-search" id="cmpForm">
       <input id="cmpQ" type="search" enterkeyhint="search" autocomplete="off" placeholder="Maxey puntos · Sevilla gana · Struff aces" aria-label="Qué quieres comparar">
       <button class="btn primary" type="submit" id="cmpGo">Buscar</button>
@@ -379,6 +401,21 @@ details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
     </div>
     <div class="recent" id="cmpRecent"></div>
     <div id="cmpOut"></div>
+    </div>
+    <div id="cmpProps" hidden style="display:flex;flex-direction:column;gap:12px">
+      <div class="props-opts">
+        <select id="pLiga" aria-label="Liga"><option value="laliga">LaLiga</option><option value="laliga2">LaLiga Hypermotion</option><option value="premier">Premier League</option><option value="seriea">Serie A</option><option value="bundesliga">Bundesliga</option><option value="ligue1">Ligue 1</option><option value="champions">Champions League</option><option value="europa">Europa League</option><option value="conference">Conference League</option><option value="copa">Copa del Rey</option></select>
+        <select id="pHoras" aria-label="Partidos"><option value="24">Próximas 24 h</option><option value="48">Próximas 48 h</option><option value="96">Próximos 4 días</option></select>
+        <select id="pOrden" aria-label="Ordenar"><option value="mercado">Ordenar por mercado</option><option value="historico">Ordenar por histórico</option></select>
+      </div>
+      <div class="props-opts">
+        <div class="tabs" id="pMercado">
+          <button type="button" data-k="todos" aria-pressed="true">Todo</button><button type="button" data-k="remates">Remates</button><button type="button" data-k="puerta">A puerta</button><button type="button" data-k="paradas">Paradas</button><button type="button" data-k="equipo">Equipos</button>
+        </div>
+        <button class="btn primary" type="button" id="pGo">Cargar</button>
+      </div>
+      <div id="propsOut"><p class="small">Elige liga y pulsa Cargar. Mira todos los remates y paradas de los próximos partidos en las 5 casas y los ordena por ventaja. Tarda un poco (hasta un minuto).</p></div>
+    </div>
   </div>
 </div>
 
@@ -1037,7 +1074,7 @@ function renderCmp(r){
     rows+=`<tr class="g"><td colspan="${cols.length+1}">${esc(g.titulo)}</td></tr>`;
     g.filas.forEach((f,fi)=>{
       const n=f.cuotas.filter(Boolean).length;
-      rows+=`<tr${f.objetivo?' class="obj"':""}><td class="sel">${esc(f.sel)}</td>`+f.cuotas.map((v,ci)=>`<td class="c">${v?`<button type="button" class="q${v===f.mejor&&n>1?" best":""}" data-g="${gi}" data-f="${fi}" data-c="${ci}" aria-label="${esc(cols[ci])} ${fq(v)}">${fq(v)}</button>`:`<span class="q none">—</span>`}</td>`).join("")+`</tr>`;
+      rows+=`<tr${f.objetivo?' class="obj"':""}><td class="sel">${esc(f.sel)}${subInfo(f)}</td>`+f.cuotas.map((v,ci)=>`<td class="c">${v?`<button type="button" class="q${v===f.mejor&&n>1?" best":""}" data-g="${gi}" data-f="${fi}" data-c="${ci}" aria-label="${esc(cols[ci])} ${fq(v)}">${fq(v)}</button>`:`<span class="q none">—</span>`}</td>`).join("")+`</tr>`;
     });
   });
   const ev=r.evento?`<div class="cmp-ev"><b>${esc(r.evento.nombre.replace(" - "," – "))}</b><small>${esc(fHora(r.evento.inicio))}${r.segundos!=null?" · "+String(r.segundos).replace(".",",")+" s":""}</small></div>`:"";
@@ -1048,6 +1085,53 @@ function renderCmp(r){
   $("#cmpOut").innerHTML=ev+info+avisos+best+`<p class="small">Toca una cuota para apuntar la apuesta con esa casa.</p>
     <div class="tbl-wrap"><table class="cmp-tbl"><thead><tr><th>Selección</th>${cols.map(c=>`<th>${esc(CORTO[c]||c)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`+marg+det+`<p class="small">${esc(r.nota||"")}</p>`;
   const b=$("#cmpBestAdd");if(b)b.addEventListener("click",()=>{const m=r.mejor;prefillBet(r,m.grupo,m.sel,m.casa,m.cuota)});
+}
+function subInfo(f){
+  const bits=[];
+  if(f.valor!=null&&f.justa)bits.push(`justa ${fq(1/f.justa)} <span class="${f.valor>0?"pos":""}">${f.valor>0?"+":""}${Math.round(f.valor*100)}%</span>`);
+  if(f.hist)bits.push(`<span title="veces que se cumplió en sus últimos partidos">${f.hist.hits}/${f.hist.n}</span>`);
+  return bits.length?`<span class="sub">${bits.join(" · ")}</span>`:"";
+}
+/* ---------- Props del día ---------- */
+let propsMercado="todos",propsRes=null,propsBusy=null;
+const pct=v=>(v>0?"+":"")+Math.round(v*100)+"%";
+function setCmpMode(m){
+  document.querySelectorAll(".cmp-mode button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===m)));
+  $("#cmpBuscar").hidden=m!=="buscar";$("#cmpProps").hidden=m!=="props";
+  $("#cmpBuscar").style.display=m==="buscar"?"flex":"none";$("#cmpProps").style.display=m==="props"?"flex":"none";
+  lsSet(LS_KEY+"-cmp-mode",m);
+}
+async function runProps(){
+  if(!cmpUrl()){setCmpMode("buscar");renderSetup();return}
+  const id={};propsBusy=id;$("#pGo").disabled=true;
+  $("#propsOut").innerHTML=`<p class="cmp-status"><span class="spin"></span>Mirando los próximos partidos en las 5 casas… Puede tardar hasta un minuto.</p>`;
+  const par=new URLSearchParams({liga:$("#pLiga").value,horas:$("#pHoras").value,orden:$("#pOrden").value,mercado:propsMercado});
+  lsSet(LS_KEY+"-props",JSON.stringify({liga:$("#pLiga").value,horas:$("#pHoras").value,orden:$("#pOrden").value,mercado:propsMercado}));
+  try{const r=await cmpFetch("/api/props?"+par,240000);if(propsBusy!==id)return;propsRes=r;renderProps(r)}
+  catch(e){if(propsBusy!==id)return;$("#propsOut").innerHTML=`<p class="cmp-status err">${e&&e.name==="AbortError"?"El portátil está tardando demasiado. Prueba con menos horas o una liga con menos partidos.":"No llego al portátil. Comprueba que está encendido con el servidor en marcha y que Tailscale está activado en el móvil."}</p>`}
+  finally{if(propsBusy===id){propsBusy=null;$("#pGo").disabled=false}}
+}
+function renderProps(r){
+  const avisos=(r.avisos||[]).map(a=>`<p class="cmp-note">${esc(a)}</p>`).join("");
+  if(!r.ok){$("#propsOut").innerHTML=avisos+`<p class="cmp-status">${esc(r.mensaje||"Sin resultados.")}</p>`;return}
+  const parts=(r.partidos||[]).map(p=>`${esc(p.nombre.replace(" - "," – "))} <span class="mut">(${p.lineas})</span>`).join(" · ");
+  const cards=r.filas.map((f,i)=>{
+    const tags=[];
+    if(f.valor!=null)tags.push(`<span class="tag${f.valor>0?" good":""}">${pct(f.valor)} sobre la justa</span>`);
+    else if(f.sobre_media!=null)tags.push(`<span class="tag${f.sobre_media>0.05?" good":""}">${pct(f.sobre_media)} sobre la media</span>`);
+    if(f.hist)tags.push(`<span class="tag hist">${f.hist.hits}/${f.hist.n} últimos · media ${String(f.hist.media).replace(".",",")}</span>`);
+    if(f.ventaja_hist!=null)tags.push(`<span class="tag${f.ventaja_hist>0?" good":""}">histórico ${pct(f.ventaja_hist)}</span>`);
+    tags.push(`<span class="tag">${f.n_casas} casa${f.n_casas>1?"s":""}</span>`);
+    const hora=f.inicio?new Date(f.inicio).toLocaleString("es-ES",{weekday:"short",hour:"2-digit",minute:"2-digit"}):"";
+    return `<button type="button" class="prop" data-i="${i}">
+      <span class="p-ev">${esc(f.partido.replace(" - "," – "))} · ${esc(hora)}</span>
+      <span><b>${esc(f.sujeto)}</b></span>
+      <span class="p-q">${fq(f.cuota)}<small>${esc(f.casa)}</small></span>
+      <span class="p-sel">${esc(f.mercado)} · ${esc(f.seleccion)}</span>
+      <span class="p-tags">${tags.join("")}</span></button>`}).join("");
+  $("#propsOut").innerHTML=avisos+`<p class="small">${parts}${r.segundos!=null?" · "+String(r.segundos).replace(".",",")+" s":""}</p>
+    <p class="small">Toca una línea para apuntarla. «Sobre la justa» = la mejor cuota frente a la cuota sin margen de las casas. «Histórico» = ventaja según sus últimos partidos, corregida con el mercado. Son pistas, no garantías.</p>
+    <div class="props-list">${cards}</div>`;
 }
 function prefillBet(r,grupo,sel,casa,cuota){
   openBet(null);
@@ -1078,6 +1162,15 @@ $("#btnCmp").addEventListener("click",openCmp);
 $("#cmpClose").addEventListener("click",closeCmp);
 $("#cmpForm").addEventListener("submit",e=>{e.preventDefault();$("#cmpQ").blur();runCmp($("#cmpQ").value)});
 $("#cmpRecent").addEventListener("click",e=>{const b=e.target.closest("[data-q]");if(b)runCmp(b.dataset.q)});
+document.querySelectorAll(".cmp-mode button").forEach(b=>b.addEventListener("click",()=>setCmpMode(b.dataset.m)));
+document.querySelectorAll("#pMercado button").forEach(b=>b.addEventListener("click",()=>{propsMercado=b.dataset.k;document.querySelectorAll("#pMercado button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)))}));
+$("#pGo").addEventListener("click",runProps);
+$("#propsOut").addEventListener("click",e=>{
+  const c=e.target.closest(".prop");if(!c||!propsRes)return;const f=propsRes.filas[+c.dataset.i];
+  prefillBet({evento:{nombre:f.partido,inicio:f.inicio},deporte:"futbol"},f.sujeto+" · "+f.mercado,f.seleccion,f.casa,f.cuota);
+});
+try{const o=JSON.parse(lsGet(LS_KEY+"-props","null"));if(o){$("#pLiga").value=o.liga||"laliga";$("#pHoras").value=o.horas||"24";$("#pOrden").value=o.orden||"mercado";propsMercado=o.mercado||"todos";document.querySelectorAll("#pMercado button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.k===propsMercado)))}}catch(e){}
+setCmpMode(lsGet(LS_KEY+"-cmp-mode","buscar")==="props"?"props":"buscar");
 document.querySelectorAll("#cmpDep button").forEach(b=>b.addEventListener("click",()=>{cmpDep=b.dataset.d;document.querySelectorAll("#cmpDep button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)))}));
 $("#cmpOut").addEventListener("click",e=>{
   const q=e.target.closest("button.q");if(!q||!cmpRes)return;
