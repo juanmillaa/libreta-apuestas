@@ -270,6 +270,18 @@ details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
 .sb-leg.hecha{opacity:.55}
 .sb-res{font-size:13.5px;background:var(--profit-soft);border-radius:8px;padding:7px 10px}
 .sb-av{font-size:12px;color:var(--pending);margin:0}
+.bj-search{display:flex;gap:8px}
+.bj-search input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:10px 12px;font-size:16px;color:var(--ink)}
+.bj-head{display:flex;flex-direction:column;gap:2px;border-bottom:1px dashed var(--line);padding-bottom:8px}
+.bj-head b{font-family:var(--f-display);font-stretch:90%;font-size:19px}
+.bj-head small{color:var(--muted);font-size:12.5px}
+.bj{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:var(--surface);display:flex;flex-direction:column;gap:7px}
+.bj-n{font-weight:600}
+.bj-line{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13.5px}
+.bj-line .btn{font-family:var(--f-mono)}
+.bj-hitos{display:flex;gap:5px;flex-wrap:wrap}
+.bj-hitos button{border:1px solid var(--line);background:transparent;border-radius:99px;padding:2px 9px;font-size:12px;font-family:var(--f-mono)}
+.bj-no{font-size:13px;color:var(--muted)}
 .cmp-setup ol{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.55}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-1px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -406,6 +418,7 @@ details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
       <button type="button" data-m="buscar" aria-pressed="true">Buscar</button>
       <button type="button" data-m="props" aria-pressed="false">Props del día</button>
       <button type="button" data-m="sure" aria-pressed="false">Surebets</button>
+      <button type="button" data-m="bajas" aria-pressed="false">Bajas NBA</button>
     </div>
     <div id="cmpBuscar" style="display:flex;flex-direction:column;gap:14px">
     <form class="cmp-search" id="cmpForm">
@@ -420,6 +433,16 @@ details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
     </div>
     <div class="recent" id="cmpRecent"></div>
     <div id="cmpOut"></div>
+    </div>
+    <div id="cmpBajas" hidden style="display:flex;flex-direction:column;gap:12px">
+      <form class="bj-search" id="bjForm">
+        <input id="bjQ" list="dlBajas" type="search" enterkeyhint="search" autocomplete="off" placeholder="¿Quién no juega? Doncic, Embiid, Shai…" aria-label="Jugador que falta">
+        <button class="btn primary" type="submit" id="bjGo">Ver</button>
+      </form>
+      <div class="tabs" id="bjStat">
+        <button type="button" data-s="PRA" aria-pressed="true">P+R+A</button><button type="button" data-s="PTS">Puntos</button><button type="button" data-s="REB">Rebotes</button><button type="button" data-s="AST">Asist.</button><button type="button" data-s="3PT">Triples</button><button type="button" data-s="PR">P+R</button><button type="button" data-s="PA">P+A</button><button type="button" data-s="RA">R+A</button>
+      </div>
+      <div id="bjOut"><p class="small">Escribe el jugador que falta y te enseño al momento las líneas de los compañeros que salen beneficiados, en las 5 casas, con su media con y sin él. La lista de beneficiados está en el archivo bajas.json del comparador.</p></div>
     </div>
     <div id="cmpSure" hidden style="display:flex;flex-direction:column;gap:12px">
       <div class="tabs sb-ligas" id="sbLigas">
@@ -520,6 +543,7 @@ details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
 <datalist id="dlDeporte"></datalist>
 <datalist id="dlCasa"></datalist>
 <datalist id="dlMercado"></datalist>
+<datalist id="dlBajas"></datalist>
 
 <script>
 (function(){
@@ -1133,7 +1157,8 @@ function renderMercados(){
 const pct=v=>(v>0?"+":"")+Math.round(v*100)+"%";
 function setCmpMode(m){
   document.querySelectorAll(".cmp-mode button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===m)));
-  [["buscar","#cmpBuscar"],["props","#cmpProps"],["sure","#cmpSure"]].forEach(([k,sel])=>{$(sel).hidden=m!==k;$(sel).style.display=m===k?"flex":"none"});
+  if(m==="bajas")cargarListaBajas();
+  [["buscar","#cmpBuscar"],["props","#cmpProps"],["sure","#cmpSure"],["bajas","#cmpBajas"]].forEach(([k,sel])=>{$(sel).hidden=m!==k;$(sel).style.display=m===k?"flex":"none"});
   lsSet(LS_KEY+"-cmp-mode",m);
 }
 /* ---------- Surebets ---------- */
@@ -1178,6 +1203,41 @@ function renderSure(){
   $("#sbOut").innerHTML=avisos+cab+`<p class="small">Comprueba las cuotas en las casas antes de apostar: cambian en segundos. Apuesta primero en la que más pueda moverse. Si cambias el total, el reparto se recalcula.</p><div class="props-list">${cards}</div>`;
 }
 let onSaved=null;
+/* ---------- Bajas NBA ---------- */
+let bjStat="PRA",bjRes=null,bjBusy=null,bjLista=false;
+async function cargarListaBajas(){
+  if(bjLista||!cmpUrl())return;
+  try{const r=await cmpFetch("/api/bajas?lista=1",15000);if(r&&r.ok){bjLista=true;
+    $("#dlBajas").innerHTML=r.lista.map(x=>`<option value="${esc(x.jugador+" "+x.equipo)}">${esc(x.jugador)} (${esc(x.equipo)}) → ${esc(x.beneficiados.join(", "))}</option>`).join("")}}catch(e){}
+}
+async function runBajas(q){
+  q=(q||"").trim();if(!q)return;if(!cmpUrl()){setCmpMode("buscar");renderSetup();return}
+  $("#bjQ").value=q;const id={};bjBusy=id;$("#bjGo").disabled=true;
+  $("#bjOut").innerHTML=`<p class="cmp-status"><span class="spin"></span>Buscando el partido y las líneas de sus compañeros…</p>`;
+  try{const r=await cmpFetch("/api/bajas?"+new URLSearchParams({q,stat:bjStat}),120000);if(bjBusy!==id)return;bjRes=r;renderBajas()}
+  catch(e){if(bjBusy!==id)return;$("#bjOut").innerHTML=`<p class="cmp-status err">${e&&e.name==="AbortError"?"El portátil está tardando demasiado.":"No llego al portátil. Comprueba que está encendido con el servidor en marcha y que Tailscale está activado en el móvil."}</p>`}
+  finally{if(bjBusy===id){bjBusy=null;$("#bjGo").disabled=false}}
+}
+function renderBajas(){
+  const r=bjRes;if(!r)return;
+  const av=(r.avisos||[]).map(a=>`<p class="cmp-note">${esc(a)}</p>`).join("");
+  const ops=(r.opciones||[]).length?`<div class="recent">${r.opciones.map(o=>`<button type="button" data-bjq="${esc(o)}">${esc(o)}</button>`).join("")}</div>`:"";
+  const head=r.ausente?`<div class="bj-head"><b>Sin ${esc(r.ausente)}</b><small>${esc(r.equipo)}${r.evento?" · "+esc(r.evento.nombre.replace(" - "," – "))+" · "+esc(fHora(r.evento.inicio)):""}${r.segundos!=null?" · "+String(r.segundos).replace(".",",")+" s":""}</small></div>`:"";
+  const msg=r.mensaje?`<p class="cmp-status">${esc(r.mensaje)}</p>`:"";
+  const fx=v=>String(v).replace(".",",");
+  const cards=(r.jugadores||[]).map((j,i)=>{
+    if(!j.encontrado)return `<div class="bj"><span class="bj-n">${esc(j.nombre)}</span><span class="bj-no">Sin líneas de ${esc(r.stat_nombre)} en las casas (todavía).</span></div>`;
+    const p=j.principal,bits=[];
+    if(j.ultimos)bits.push(`<span class="tag hist">últimos ${j.ultimos.n}: ${j.ultimos.hits}/${j.ultimos.n} · media ${fx(j.ultimos.media)}</span>`);
+    if(j.con_sin){const c=j.con_sin.con,s2=j.con_sin.sin;
+      bits.push(`<span class="tag${s2.n&&c.media!=null&&s2.media>c.media?" good":""}">con él ${c.media==null?"—":fx(c.media)} (${c.n}) · sin él ${s2.n?fx(s2.media)+" ("+s2.n+")":"sin datos"}</span>`)}
+    const linea=p?`<div class="bj-line">Línea <b class="num">${fx(p.linea)}</b>
+        <button type="button" class="btn small" data-bj="${i}" data-sel="mas">Más ${fq(p.mas.cuota)} · ${esc(p.mas.casa)}</button>
+        <button type="button" class="btn small" data-bj="${i}" data-sel="menos">Menos ${fq(p.menos.cuota)} · ${esc(p.menos.casa)}</button></div>`:"";
+    const hitos=(j.hitos||[]).length?`<div class="bj-hitos">${j.hitos.map((h,k)=>`<button type="button" data-bj="${i}" data-hito="${k}">+${fx(h.linea)} ${fq(h.cuota)} ${esc(h.casa)}</button>`).join("")}</div>`:"";
+    return `<div class="bj"><span class="bj-n">${esc(j.nombre)} · ${esc(r.stat_nombre)}</span>${linea}${hitos}${bits.length?`<div class="p-tags" style="display:flex;gap:6px;flex-wrap:wrap">${bits.join("")}</div>`:""}</div>`}).join("");
+  $("#bjOut").innerHTML=head+av+ops+msg+(cards?`<p class="small">Toca una cuota para apuntarla. Confirma la baja antes de apostar.</p><div class="props-list">${cards}</div>`:"");
+}
 async function runProps(){
   if(!cmpUrl()){setCmpMode("buscar");renderSetup();return}
   const id={};propsBusy=id;$("#pGo").disabled=true;
@@ -1247,6 +1307,16 @@ $("#pLiga").addEventListener("change",renderMercados);
 $("#pGo").addEventListener("click",runProps);
 $("#sbLigas").addEventListener("click",e=>{const b=e.target.closest("[data-l]");if(b)b.setAttribute("aria-pressed",String(b.getAttribute("aria-pressed")!=="true"))});
 $("#sbGo").addEventListener("click",runSure);
+$("#bjForm").addEventListener("submit",e=>{e.preventDefault();$("#bjQ").blur();runBajas($("#bjQ").value)});
+$("#bjStat").addEventListener("click",e=>{const b=e.target.closest("[data-s]");if(!b)return;bjStat=b.dataset.s;document.querySelectorAll("#bjStat button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));if($("#bjQ").value.trim())runBajas($("#bjQ").value)});
+$("#bjOut").addEventListener("click",e=>{
+  const o=e.target.closest("[data-bjq]");if(o){runBajas(o.dataset.bjq);return}
+  const b=e.target.closest("[data-bj]");if(!b||!bjRes)return;const j=bjRes.jugadores[+b.dataset.bj];
+  const ev={evento:bjRes.evento,deporte:"nba"},g=`${j.nombre} · ${bjRes.stat_nombre}`,extra=` (sin ${bjRes.ausente})`;
+  if(b.dataset.hito!=null){const h=j.hitos[+b.dataset.hito];prefillBet(ev,g,`Más de ${h.linea}${extra}`,h.casa,h.cuota);return}
+  const p=j.principal,mas=b.dataset.sel==="mas",x=mas?p.mas:p.menos;
+  prefillBet(ev,g,`${mas?"Más":"Menos"} de ${p.linea}${extra}`,x.casa,x.cuota);
+});
 $("#sbTotal").addEventListener("input",()=>{if(sbRes&&sbRes.surebets&&sbRes.surebets.length)renderSure()});
 $("#sbOut").addEventListener("click",e=>{
   const b=e.target.closest("[data-sb]");if(!b||!sbRes)return;
@@ -1264,7 +1334,7 @@ $("#propsOut").addEventListener("click",e=>{
 });
 try{const o=JSON.parse(lsGet(LS_KEY+"-props","null"));if(o){$("#pLiga").value=o.liga||"laliga";$("#pHoras").value=o.horas||"24";$("#pOrden").value=o.orden||"mercado";propsMercado=o.mercado||"todos"}}catch(e){}
 renderMercados();
-{const m=lsGet(LS_KEY+"-cmp-mode","buscar");setCmpMode(["props","sure"].includes(m)?m:"buscar")}
+{const m=lsGet(LS_KEY+"-cmp-mode","buscar");setCmpMode(["props","sure","bajas"].includes(m)?m:"buscar")}
 document.querySelectorAll("#cmpDep button").forEach(b=>b.addEventListener("click",()=>{cmpDep=b.dataset.d;document.querySelectorAll("#cmpDep button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)))}));
 $("#cmpOut").addEventListener("click",e=>{
   const q=e.target.closest("button.q");if(!q||!cmpRes)return;
