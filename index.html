@@ -228,6 +228,8 @@ label.f input.big{font-family:var(--f-mono);font-size:20px;font-weight:600}
 .cmp-tbl tr.obj td.sel::before{content:"▶ "}
 .cmp-tbl td.c{text-align:right;width:1%}
 .q{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px;border:0;background:transparent;border-radius:6px;padding:6px 4px;min-width:44px;text-align:right}
+.cmp-tbl.c6 .q{min-width:0;padding:6px 2px;font-size:12px}
+.cmp-tbl.c6 th{font-size:10px}
 .q.best{background:var(--profit-soft);color:var(--profit);font-weight:600}
 .q.none{color:var(--line);cursor:default}
 .cmp-best{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--profit-soft);border:1px solid color-mix(in srgb,var(--profit) 35%,transparent);border-radius:10px;padding:10px 12px;font-size:14px}
@@ -498,7 +500,7 @@ const $=s=>document.querySelector(s);
 const EST={pendiente:"Pendiente",ganada:"Ganada",perdida:"Perdida",medioG:"½ ganada",medioP:"½ perdida",nula:"Nula",cashout:"Cash out"};
 const WIN={ganada:[1,0],perdida:[0,1],medioG:[.5,0],medioP:[0,.5]};
 const DEF_DEP=["Fútbol","Baloncesto","Tenis","Pádel","Fórmula 1","MotoGP","eSports","Balonmano","Ciclismo","Otro"];
-const DEF_CASA=["Bet365","Codere","Bwin","Betfair","Sportium","Winamax","Retabet","William Hill","Luckia","Marca Apuestas"];
+const DEF_CASA=["Bet365","Codere","Bwin","Betfair","Sportium","Winamax","Retabet","William Hill","Luckia","Marca Apuestas","Paf","Betway","Gran Madrid"];
 const DEF_MERC=["1X2 · Local","1X2 · Empate","1X2 · Visitante","Doble oportunidad","Más de 2.5 goles","Menos de 2.5 goles","Ambos marcan","Hándicap asiático","Goleador","Ganador del partido","Más de X puntos","Córners","Tarjetas"];
 const DIAS=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const LS_KEY="libreta-apuestas-v1";
@@ -1011,7 +1013,7 @@ function readImport(file){
 /* ---------- comparador (habla con servidor.py en el portátil) ---------- */
 const CMP_URL=LS_KEY+"-cmp-url",CMP_HIST=LS_KEY+"-cmp-hist";
 const DEP_LIBRETA={futbol:"Fútbol",nba:"Baloncesto",nfl:"Fútbol americano",tenis:"Tenis"};
-const CORTO={"William Hill":"W. Hill","Winamax":"Winamax"};
+const CORTO={"William Hill":"W. Hill","Winamax":"Winamax","Gran Madrid":"G. Madrid"};
 let cmpDep="",cmpBusy=null,cmpRes=null;
 const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}};
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
@@ -1081,7 +1083,7 @@ function renderCmp(r){
   if(r.mejor){const m=r.mejor;best=`<div class="cmp-best"><span>▶ Mejor para tu apuesta: <b>${esc(m.casa)} a ${fq(m.cuota)}</b>${m.extra?`<br><small class="mut">${esc(m.extra)}</small>`:""}</span><button type="button" class="btn small primary" id="cmpBestAdd">Apuntar</button></div>`}
   const marg=(r.margenes||[]).length?`<p class="small">Margen de la casa en el 1X2: ${r.margenes.map(m=>esc(m.casa)+" "+pctF.format(m.margen)).join(" · ")}</p>`:"";
   $("#cmpOut").innerHTML=ev+info+avisos+best+`<p class="small">Toca una cuota para apuntar la apuesta con esa casa.</p>
-    <div class="tbl-wrap"><table class="cmp-tbl"><thead><tr><th>Selección</th>${cols.map(c=>`<th>${esc(CORTO[c]||c)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`+marg+det+`<p class="small">${esc(r.nota||"")}</p>`;
+    <div class="tbl-wrap"><table class="cmp-tbl${cols.length>=6?" c6":""}"><thead><tr><th>Selección</th>${cols.map(c=>`<th>${esc(CORTO[c]||c)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`+marg+det+`<p class="small">${esc(r.nota||"")}</p>`;
   const b=$("#cmpBestAdd");if(b)b.addEventListener("click",()=>{const m=r.mejor;prefillBet(r,m.grupo,m.sel,m.casa,m.cuota)});
 }
 function subInfo(f){
