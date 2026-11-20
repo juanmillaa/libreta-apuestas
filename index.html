@@ -217,7 +217,7 @@ label.f input.big{font-family:var(--f-mono);font-size:20px;font-weight:600}
 .cmp-ev{display:flex;flex-direction:column;gap:2px;border-bottom:1px dashed var(--line);padding-bottom:10px}
 .cmp-ev b{font-family:var(--f-display);font-stretch:90%;font-size:19px;font-weight:700;line-height:1.2}
 .cmp-ev small{color:var(--muted);font-size:12.5px}
-.cmp-note{font-size:13px;background:var(--pending-soft);border-radius:8px;padding:7px 10px}
+.cmp-note{overflow-wrap:anywhere;font-size:13px;background:var(--pending-soft);border-radius:8px;padding:7px 10px}
 .cmp-tbl{width:100%;border-collapse:collapse;font-size:13px}
 .cmp-tbl th{font-size:10.5px;letter-spacing:0;text-transform:none;padding:4px 2px;text-align:right;white-space:nowrap}
 .cmp-tbl th:first-child{text-align:left}
@@ -254,6 +254,22 @@ details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
 .tag.good{background:var(--profit-soft);color:var(--profit);border-color:transparent;font-weight:600}
 .tag.hist{background:var(--accent-soft);color:var(--accent);border-color:transparent}
 .props-list{display:flex;flex-direction:column;gap:8px}
+.sb-ligas button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.sb-total{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.sb-total input{width:84px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px 8px;font-family:var(--f-mono);font-size:15px;color:var(--ink)}
+.sb{border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.sb-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sb-pct{font-family:var(--f-mono);font-size:20px;font-weight:700;color:var(--profit);white-space:nowrap}
+.sb-ev{font-size:12px;color:var(--muted);text-align:right}
+.sb-mk{font-weight:600;font-size:14px}
+.sb-leg{display:grid;grid-template-columns:1fr auto auto;gap:2px 10px;align-items:center;padding:7px 0;border-top:1px dashed var(--line)}
+.sb-leg .l-sel{font-size:13.5px;line-height:1.25}
+.sb-leg .l-sel small{display:block;color:var(--muted);font-size:11.5px}
+.sb-leg .l-q{text-align:right;font-family:var(--f-mono);font-size:13px;line-height:1.3}
+.sb-leg .l-q b{font-size:15px}
+.sb-leg.hecha{opacity:.55}
+.sb-res{font-size:13.5px;background:var(--profit-soft);border-radius:8px;padding:7px 10px}
+.sb-av{font-size:12px;color:var(--pending);margin:0}
 .cmp-setup ol{margin:6px 0 0;padding-left:20px;font-size:14px;line-height:1.55}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-1px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -389,6 +405,7 @@ details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
     <div class="seg cmp-mode" role="group" aria-label="Modo">
       <button type="button" data-m="buscar" aria-pressed="true">Buscar</button>
       <button type="button" data-m="props" aria-pressed="false">Props del día</button>
+      <button type="button" data-m="sure" aria-pressed="false">Surebets</button>
     </div>
     <div id="cmpBuscar" style="display:flex;flex-direction:column;gap:14px">
     <form class="cmp-search" id="cmpForm">
@@ -403,6 +420,17 @@ details.cmp-casas ul{margin:6px 0 0;padding-left:18px}
     </div>
     <div class="recent" id="cmpRecent"></div>
     <div id="cmpOut"></div>
+    </div>
+    <div id="cmpSure" hidden style="display:flex;flex-direction:column;gap:12px">
+      <div class="tabs sb-ligas" id="sbLigas">
+        <button type="button" data-l="nba">NBA</button><button type="button" data-l="laliga">LaLiga</button><button type="button" data-l="premier">Premier</button><button type="button" data-l="champions">Champions</button><button type="button" data-l="europa">Europa L.</button><button type="button" data-l="seriea">Serie A</button><button type="button" data-l="bundesliga">Bundesliga</button><button type="button" data-l="ligue1">Ligue 1</button><button type="button" data-l="laliga2">LaLiga 2</button><button type="button" data-l="nfl">NFL</button><button type="button" data-l="tenis">Tenis</button>
+      </div>
+      <div class="props-opts">
+        <select id="sbHoras" aria-label="Partidos"><option value="24">Próximas 24 h</option><option value="48">Próximas 48 h</option></select>
+        <label class="sb-total">Total <input id="sbTotal" inputmode="decimal" value="100"> €</label>
+        <button class="btn primary" type="button" id="sbGo">Buscar</button>
+      </div>
+      <div id="sbOut"><p class="small">Una surebet es cuando, apostando a todos los resultados en casas distintas, ganas pase lo que pase. Elige ligas y pulsa Buscar: miro todos los partidos en las 5 casas y te digo cuánto apostar en cada una. Salen pocas y duran poco.</p></div>
     </div>
     <div id="cmpProps" hidden style="display:flex;flex-direction:column;gap:12px">
       <div class="props-opts">
@@ -928,6 +956,7 @@ function buildStates(){
 }
 function openBet(b){
   if(isDemo()&&b){toast("Los datos de ejemplo no se pueden editar. Añade una apuesta tuya.");return}
+  onSaved=null;
   editingId=b?b.id:null;delArmed=false;
   $("#betTitle").textContent=b?"Editar apuesta":"Nueva apuesta";
   $("#btnDelete").hidden=!b;$("#btnDelete").textContent="Borrar";
@@ -961,7 +990,7 @@ async function submitBet(ev){
   const b={id:editingId||uid(),fecha,evento,mercado:$("#iMercado").value.trim(),deporte:$("#iDeporte").value.trim(),casa:$("#iCasa").value.trim(),
     tipo:$("#iTipo").value,cuota:Math.round(cuota*1000)/1000,importe:Math.round(importe*100)/100,estado,cashout,notas:$("#iNotas").value.trim(),creado:prev?prev.creado||Date.now():Date.now()};
   $("#btnSave").disabled=true;
-  try{await persistBet(b);closeAll();toast(editingId?"Apuesta actualizada":"Apuesta guardada")}
+  try{await persistBet(b);closeAll();toast(editingId?"Apuesta actualizada":"Apuesta guardada");if(onSaved){const f=onSaved;onSaved=null;f()}}
   catch(e){err(e&&e.code==="quota_exceeded"?"No queda espacio para más apuestas.":"No se ha podido guardar. Revisa tu conexión y vuelve a intentarlo.")}
   finally{$("#btnSave").disabled=false}
 }
@@ -1104,10 +1133,51 @@ function renderMercados(){
 const pct=v=>(v>0?"+":"")+Math.round(v*100)+"%";
 function setCmpMode(m){
   document.querySelectorAll(".cmp-mode button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===m)));
-  $("#cmpBuscar").hidden=m!=="buscar";$("#cmpProps").hidden=m!=="props";
-  $("#cmpBuscar").style.display=m==="buscar"?"flex":"none";$("#cmpProps").style.display=m==="props"?"flex":"none";
+  [["buscar","#cmpBuscar"],["props","#cmpProps"],["sure","#cmpSure"]].forEach(([k,sel])=>{$(sel).hidden=m!==k;$(sel).style.display=m===k?"flex":"none"});
   lsSet(LS_KEY+"-cmp-mode",m);
 }
+/* ---------- Surebets ---------- */
+let sbRes=null,sbBusy=null,sbHechas=new Set();
+function sbLigas(){return [...document.querySelectorAll("#sbLigas button[aria-pressed=true]")].map(b=>b.dataset.l)}
+function sbTotal(){const v=num($("#sbTotal").value);return v>0?v:100}
+function reparto(cuotas,total){
+  const suma=cuotas.reduce((a,c)=>a+1/c,0);
+  const st=cuotas.map(c=>Math.round(total*(1/c)/suma*10)/10);
+  const cobros=st.map((x,i)=>x*cuotas[i]);const puesto=st.reduce((a,b)=>a+b,0);
+  return {st,cobros,puesto,gana:Math.min(...cobros)-puesto};
+}
+async function runSure(){
+  if(!cmpUrl()){setCmpMode("buscar");renderSetup();return}
+  const ligas=sbLigas();if(!ligas.length){toast("Elige al menos una liga.");return}
+  lsSet(LS_KEY+"-sb",JSON.stringify({ligas,horas:$("#sbHoras").value,total:$("#sbTotal").value}));
+  const id={};sbBusy=id;$("#sbGo").disabled=true;sbHechas=new Set();
+  $("#sbOut").innerHTML=`<p class="cmp-status"><span class="spin"></span>Revisando todos los partidos en las 5 casas… Puede tardar un par de minutos.</p>`;
+  const par=new URLSearchParams({ligas:ligas.join(","),horas:$("#sbHoras").value,total:String(sbTotal())});
+  try{const r=await cmpFetch("/api/surebets?"+par,300000);if(sbBusy!==id)return;sbRes=r;renderSure()}
+  catch(e){if(sbBusy!==id)return;$("#sbOut").innerHTML=`<p class="cmp-status err">${e&&e.name==="AbortError"?"El portátil está tardando demasiado. Prueba con menos ligas.":"No llego al portátil. Comprueba que está encendido con el servidor en marcha y que Tailscale está activado en el móvil."}</p>`}
+  finally{if(sbBusy===id){sbBusy=null;$("#sbGo").disabled=false}}
+}
+function renderSure(){
+  const r=sbRes;if(!r)return;
+  const avisos=(r.avisos||[]).map(a=>`<p class="cmp-note">${esc(a)}</p>`).join("");
+  const cab=`<p class="small">${r.partidos||0} partidos revisados${r.segundos!=null?" · "+String(r.segundos).replace(".",",")+" s":""}</p>`;
+  if(!r.surebets||!r.surebets.length){$("#sbOut").innerHTML=avisos+cab+`<p class="cmp-status">${esc(r.mensaje||"Ninguna surebet ahora mismo.")}</p>`;return}
+  const total=sbTotal();
+  const cards=r.surebets.map((s,i)=>{
+    const rep=reparto(s.patas.map(p=>p.cuota),total);
+    const hora=s.inicio?new Date(s.inicio).toLocaleString("es-ES",{weekday:"short",hour:"2-digit",minute:"2-digit"}):"";
+    const legs=s.patas.map((p,j)=>{const hecha=sbHechas.has(i+"-"+j);return `<div class="sb-leg${hecha?" hecha":""}">
+      <span class="l-sel">${esc(p.seleccion)}${p.mercado!==s.mercado?`<small>${esc(p.mercado)}</small>`:""}<small>${esc(p.casa)}</small></span>
+      <span class="l-q"><b>${fq(p.cuota)}</b><br>${money(rep.st[j])}</span>
+      <button type="button" class="btn small${hecha?"":" primary"}" data-sb="${i}" data-p="${j}">${hecha?"✓":"Apuntar"}</button></div>`}).join("");
+    const av=(s.avisos||[]).map(a=>`<p class="sb-av">⚠ ${esc(a)}</p>`).join("");
+    return `<div class="sb"><div class="sb-top"><span class="sb-pct">+${String((s.beneficio*100).toFixed(2)).replace(".",",")} %</span>
+      <span class="sb-ev">${esc(s.partido.replace(" - "," – "))}<br>${esc(hora)}</span></div>
+      <span class="sb-mk">${esc(s.mercado)}</span>${legs}
+      <div class="sb-res">Pones <b class="num">${money(rep.puesto)}</b> y ganas al menos <b class="num pos">${smoney(rep.gana)}</b> salga lo que salga.</div>${av}</div>`}).join("");
+  $("#sbOut").innerHTML=avisos+cab+`<p class="small">Comprueba las cuotas en las casas antes de apostar: cambian en segundos. Apuesta primero en la que más pueda moverse. Si cambias el total, el reparto se recalcula.</p><div class="props-list">${cards}</div>`;
+}
+let onSaved=null;
 async function runProps(){
   if(!cmpUrl()){setCmpMode("buscar");renderSetup();return}
   const id={};propsBusy=id;$("#pGo").disabled=true;
@@ -1141,7 +1211,7 @@ function renderProps(r){
     <p class="small">Toca una línea para apuntarla. «Sobre la justa» = la mejor cuota frente a la cuota sin margen de las casas. «Histórico» = ventaja según sus últimos partidos, corregida con el mercado. Son pistas, no garantías.</p>
     <div class="props-list">${cards}</div>`;
 }
-function prefillBet(r,grupo,sel,casa,cuota){
+function prefillBet(r,grupo,sel,casa,cuota,importe){
   openBet(null);
   $("#iEvento").value=r.evento?r.evento.nombre.replace(" - "," – "):"";
   $("#iMercado").value=(grupo&&grupo!==sel?grupo+" · ":"")+sel;
@@ -1149,6 +1219,7 @@ function prefillBet(r,grupo,sel,casa,cuota){
   $("#iCasa").value=casa;
   if(DEP_LIBRETA[r.deporte])$("#iDeporte").value=DEP_LIBRETA[r.deporte];
   if(r.evento&&r.evento.inicio){const d=new Date(r.evento.inicio);if(!isNaN(d))$("#iFecha").value=iso(d)}
+  if(importe>0){$("#iImporte").value=String(Math.round(importe*100)/100).replace(".",",")}
   updatePayout();setTimeout(()=>$("#iImporte").focus(),40);
 }
 async function testCmp(){
@@ -1174,13 +1245,26 @@ document.querySelectorAll(".cmp-mode button").forEach(b=>b.addEventListener("cli
 $("#pMercado").addEventListener("click",e=>{const b=e.target.closest("[data-k]");if(!b)return;propsMercado=b.dataset.k;document.querySelectorAll("#pMercado button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)))});
 $("#pLiga").addEventListener("change",renderMercados);
 $("#pGo").addEventListener("click",runProps);
+$("#sbLigas").addEventListener("click",e=>{const b=e.target.closest("[data-l]");if(b)b.setAttribute("aria-pressed",String(b.getAttribute("aria-pressed")!=="true"))});
+$("#sbGo").addEventListener("click",runSure);
+$("#sbTotal").addEventListener("input",()=>{if(sbRes&&sbRes.surebets&&sbRes.surebets.length)renderSure()});
+$("#sbOut").addEventListener("click",e=>{
+  const b=e.target.closest("[data-sb]");if(!b||!sbRes)return;
+  const i=+b.dataset.sb,j=+b.dataset.p,s=sbRes.surebets[i],p=s.patas[j];
+  const rep=reparto(s.patas.map(x=>x.cuota),sbTotal());
+  prefillBet({evento:{nombre:s.partido,inicio:s.inicio},deporte:s.deporte},p.mercado+" (surebet)",p.seleccion,p.casa,p.cuota,rep.st[j]);
+  onSaved=()=>{sbHechas.add(i+"-"+j);renderSure()};
+});
+try{const o=JSON.parse(lsGet(LS_KEY+"-sb","null"));const ls=o&&o.ligas||["nba","laliga","premier","champions"];
+  document.querySelectorAll("#sbLigas button").forEach(b=>b.setAttribute("aria-pressed",String(ls.includes(b.dataset.l))));
+  if(o){$("#sbHoras").value=o.horas||"24";$("#sbTotal").value=o.total||"100"}}catch(e){}
 $("#propsOut").addEventListener("click",e=>{
   const c=e.target.closest(".prop");if(!c||!propsRes)return;const f=propsRes.filas[+c.dataset.i];
   prefillBet({evento:{nombre:f.partido,inicio:f.inicio},deporte:propsRes.liga==="nba"?"nba":"futbol"},f.sujeto+" · "+f.mercado,f.seleccion,f.casa,f.cuota);
 });
 try{const o=JSON.parse(lsGet(LS_KEY+"-props","null"));if(o){$("#pLiga").value=o.liga||"laliga";$("#pHoras").value=o.horas||"24";$("#pOrden").value=o.orden||"mercado";propsMercado=o.mercado||"todos"}}catch(e){}
 renderMercados();
-setCmpMode(lsGet(LS_KEY+"-cmp-mode","buscar")==="props"?"props":"buscar");
+{const m=lsGet(LS_KEY+"-cmp-mode","buscar");setCmpMode(["props","sure"].includes(m)?m:"buscar")}
 document.querySelectorAll("#cmpDep button").forEach(b=>b.addEventListener("click",()=>{cmpDep=b.dataset.d;document.querySelectorAll("#cmpDep button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)))}));
 $("#cmpOut").addEventListener("click",e=>{
   const q=e.target.closest("button.q");if(!q||!cmpRes)return;
